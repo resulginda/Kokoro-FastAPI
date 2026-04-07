@@ -1,24 +1,31 @@
 FROM python:3.10-slim
 
-# Kokoro için gerekli sistem kütüphaneleri
+# Sistem bağımlılıkları (Kokoro ve ses işleme için şart)
 RUN apt-get update && apt-get install -y \
     espeak-ng \
     ffmpeg \
     gcc \
     g++ \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Önce bağımlılıkları yükleyelim
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-# Kokoro'nun kendisini de yükleyelim
-RUN pip install kokoro>=0.9.4 soundfile
+# Önce boş bir README oluştur (Hata almamak için)
+RUN touch README.md
 
 # Proje dosyalarını kopyala
 COPY . .
 
-# FastAPI'yi ayağa kaldır
-# Not: Projenin giriş dosyası main.py ise alttaki komut çalışır
+# Bağımlılıkları tek tek kuralım (requirements.txt yoksa bile çalışır)
+RUN pip install --no-cache-dir fastapi uvicorn kokoro>=0.9.4 soundfile python-multipart
+
+# Portu ayarla
+EXPOSE 8000
+
+# ÇALIŞTIRMA KOMUTU: 
+# Eğer ana dizinde main.py varsa:
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# EĞER main.py bir klasörün içindeyse (örn: api/main.py) üsttekini sil bunu yaz:
+# CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
